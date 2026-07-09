@@ -481,6 +481,7 @@
             .streaming-title{font-size:18px}
         }
     </style>
+
 </head>
 <body>
 
@@ -701,7 +702,7 @@
                 </div>
                 <div class="streaming-sidebar">
                     <div class="episode-list" style="margin-top:0"><h4>Pilih Episode:</h4><div class="streaming-eps-scroll"><div class="episodes" id="streamingEpSelector"></div></div></div>
-                    <div class="server-selector" style="margin-top:20px"><h4>🌐 Server Streaming:</h4><p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Pilih server jika video tidak bisa diputar</p><div class="server-buttons" id="streamingServerBtns"><button class="server-btn active" onclick="selectStreamingServer('megaplay_ani')">🇯🇵 Server 1 (AniList)</button><button class="server-btn" onclick="selectStreamingServer('megaplay_mal')">🇺🇸 Server 2 (MAL)</button><button class="server-btn" onclick="selectStreamingServer('consumet_gogo')">🌐 Server 3 (Gogo)</button><button class="server-btn" onclick="selectStreamingServer('consumet_zoro')">⚡ Server 4 (Zoro)</button><button class="server-btn" onclick="selectStreamingServer('consumet_9anime')">🎬 Server 5 (9anime)</button><button class="server-btn" onclick="selectStreamingServer('consumet_animepahe')">💎 Server 6 (AnimePahe)</button></div></div>
+                    <div class="server-selector" style="margin-top:20px"><h4>🌐 Server Streaming:</h4><p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">Pilih server jika video tidak bisa diputar</p><div class="server-buttons" id="streamingServerBtns"><button class="server-btn active" onclick="selectStreamingServer('megaplay_ani')">🇯🇵 Server 1 (AniList)</button><button class="server-btn" onclick="selectStreamingServer('megaplay_mal')">🇺🇸 Server 2 (MAL)</button></div></div>
                 </div>
             </div>
         </div>
@@ -865,10 +866,6 @@
                 <div class="server-buttons">
                     <button class="server-btn active" onclick="selectStreamServer('megaplay_ani')">🇯🇵 Server 1 (MegaPlay)</button>
                     <button class="server-btn" onclick="selectStreamServer('megaplay_mal')">🇺🇸 Server 2 (MAL)</button>
-                    <button class="server-btn" onclick="selectStreamServer('consumet_gogo')">🌐 Server 3 (Gogo)</button>
-                    <button class="server-btn" onclick="selectStreamServer('consumet_zoro')">⚡ Server 4 (Zoro)</button>
-                    <button class="server-btn" onclick="selectStreamServer('consumet_9anime')">🎬 Server 5 (9anime)</button>
-                    <button class="server-btn" onclick="selectStreamServer('consumet_animepahe')">💎 Server 6 (AnimePahe)</button>
                 </div>
             </div>
         </div>
@@ -2027,46 +2024,6 @@ const STREAMING_SERVERS = {
         description: 'Server alternatif - menggunakan MAL ID',
         type: 'embed'
     },
-    consumet_gogo: {
-        name: '🌐 Server 3 (Gogoanime)',
-        flag: '🌐',
-        getUrl: (malId, anilistId, episode, title) => {
-            if (!title) return null;
-            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            return `${API_CONFIG.CONSUMET_BASE}/anime/gogoanime/${slug}-episode-${episode}`;
-        },
-        description: 'Consumet - Gogoanime (lengkap)'
-    },
-    consumet_zoro: {
-        name: '⚡ Server 4 (Zoro)',
-        flag: '⚡',
-        getUrl: (malId, anilistId, episode, title) => {
-            if (!title) return null;
-            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            return `${API_CONFIG.CONSUMET_BASE}/anime/zoro/${slug}-${episode}`;
-        },
-        description: 'Consumet - Zoro (kualitas HD)'
-    },
-    consumet_9anime: {
-        name: '🎬 Server 5 (9anime)',
-        flag: '🎬',
-        getUrl: (malId, anilistId, episode, title) => {
-            if (!title) return null;
-            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            return `${API_CONFIG.CONSUMET_BASE}/anime/9anime/${slug}-${episode}`;
-        },
-        description: 'Consumet - 9anime (cepat)'
-    },
-    consumet_animepahe: {
-        name: '💎 Server 6 (AnimePahe)',
-        flag: '💎',
-        getUrl: (malId, anilistId, episode, title) => {
-            if (!title) return null;
-            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            return `${API_CONFIG.CONSUMET_BASE}/anime/animepahe/${slug}-episode-${episode}`;
-        },
-        description: 'Consumet - AnimePahe (lightweight)'
-    }
 };
 
 // Global data store for anime cards (maps title -> data)
@@ -3872,13 +3829,7 @@ function loadStreamingPageStream(serverKey, episode) {
     if (!server) return;
     let url = server.getUrl(malId, anilistId, episode, streamingPageData?.title);
     
-    // Handle Consumet servers
-    if (url && serverKey.startsWith('consumet_')) {
-        loadConsumetStream(url);
-        return;
-    }
-    
-    // Handle redirect type (legal platforms)
+// Handle redirect type (legal platforms)
     if (url && server.type === 'redirect') {
         window.open(url, '_blank');
         showToast(`Membuka ${server.name} di tab baru`, 'info');
@@ -3977,64 +3928,8 @@ console.log('%cPowered by: AniList API & Jikan API','color:#c084fc;font-size:12p
 
         
 
-// Load stream from Consumet API
-async function loadConsumetStream(apiUrl) {
-    const player = document.getElementById('videoPlayer');
-    player.innerHTML = '<div class="loading">🔄 Loading stream from Consumet...</div>';
-    
-    try {
-        console.log('Fetching Consumet API:', apiUrl);
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-            throw new Error('HTTP ' + response.status);
-        }
-        
-        const data = await response.json();
-        
-        // Consumet returns different structures based on provider
-        let videoUrl = null;
-        
-        // Try different response structures
-        if (data.sources && data.sources.length > 0) {
-            // Gogoanime, Zoro format
-            videoUrl = data.sources[0].url;
-        } else if (data.episodes && data.episodes.length > 0) {
-            // 9anime format
-            videoUrl = data.episodes[0].url;
-        } else if (data.headers && data.sources) {
-            // AnimePahe format
-            videoUrl = data.sources[0].url;
-        }
-        
-        if (videoUrl) {
-            console.log('Consumet stream URL:', videoUrl);
-            loadVideoFromUrl(videoUrl);
-        } else {
-            throw new Error('No video URL found in response');
-        }
-        
-    } catch (error) {
-        console.error('Consumet API error:', error);
-        
-        // Try fallback server
-        const fallbackServers = Object.keys(STREAMING_SERVERS).filter(
-            key => key !== currentServer
-        );
-        
-        if (fallbackServers.length > 0) {
-            showToast('Server ' + currentServer + ' gagal, mencoba server lain...', 'warning');
-            currentServer = fallbackServers[0];
-            updateServerButtons();
-            loadStream();
-        } else {
-            player.innerHTML = '<div class="error">❌ Gagal memuat stream dari Consumet API<br><small>Error: ' + error.message + '</small><br><button onclick="retryStream()">🔄 Retry</button></div>';
-        }
-    }
-}
 
 
 </script>
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a187c018688016ec',t:'MTc4MzYwNDUyOQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
